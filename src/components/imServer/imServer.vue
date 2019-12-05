@@ -11,6 +11,7 @@
 <script >
 import imRecord from './imRecord.vue';
 import imChat from './imChat.vue';
+import swal from 'sweetalert2';
 
 export default {
     components: {
@@ -25,6 +26,9 @@ export default {
     computed: {
         storeSelectedChatEn() {
             return this.$store.imServerStore.getters.selectedChatEn;
+        },
+        storeServerChatEn() {
+            return this.$store.imServerStore.getters.serverChatEn;
         }
     },
     watch: {},
@@ -33,6 +37,22 @@ export default {
          * 选中了会话
          */
         selectedChat: function() {}
+    },
+    created() {
+        this.$http.post('users/checkLogin').then(({success, errMsg}) => {
+            if (!success) {
+                swal({
+                    title: '错误!',
+                    text: errMsg || '您尚未登录',
+                    type: 'error',
+                    confirmButtonClass: 'el-button el-button--danger',
+                    confirmButtonText: 'OK',
+                    buttonsStyling: false
+                }).then(() => {
+                    this.$router.push('/');
+                })
+            }
+        })
     },
     mounted() {
         this.$store.imServerStore.dispatch('SERVER_ON');

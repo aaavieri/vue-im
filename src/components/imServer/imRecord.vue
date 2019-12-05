@@ -125,7 +125,7 @@ export default {
                 height: 50px;
             }
             .kf-name {
-                font-size: 16px;
+                font-size: 12px;
             }
         }
         .client-info-wrapper {

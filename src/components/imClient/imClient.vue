@@ -4,8 +4,8 @@
         <div class="imClient-inner">
             <header class="imClient-header">
                 <div class="name-wrapper position-v-mid">
-                    <span v-if="chatInfoEn.chatState == 'robot'">Vue在线客服-访客端</span>
-                    <span v-else-if="chatInfoEn.chatState == 'agent'">您正在与客服{{serverChatEn.serverChatName}}对话</span>
+                    <!--<span v-if="chatInfoEn.chatState == 'robot'">Vue在线客服-访客端</span>-->
+                    <span>您正在与客服{{serverChatEn.serverChatName}}对话</span>
                 </div>
                 <div class="opr-wrapper position-v-mid">
                     <el-tooltip content="评分" placement="bottom" effect="light">
@@ -96,7 +96,7 @@ export default {
         return {
             socket: null,
             chatInfoEn: {
-                chatState: 'robot', // chat状态；robot 机器人、agent 客服
+                chatState: 'agent', // chat状态；robot 机器人、agent 客服
                 inputContent: '', // 输入框内容
                 msgList: [], // 消息列表
                 state: 'on', // 连接状态;on ：在线；off：离线

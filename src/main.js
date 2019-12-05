@@ -5,15 +5,20 @@ import App from './App';
 import router from './router';
 import { imServerStore } from './store/imServerStore.js';
 // axios
-import http from '@/common/http.js';
-Vue.prototype.$http = http;
+// import http from '@/common/http.js';
+// Vue.prototype.$http = http;
 // ak
 import ak from '@/common/ak.js';
 Vue.prototype.$ak = ak;
 // element-ui
 import ElementUI from 'element-ui';
 import 'element-ui/lib/theme-chalk/index.css';
+
+import HttpPlugin from '@/plugin/HttpPlugin'
+
 Vue.use(ElementUI);
+
+Vue.use(HttpPlugin);
 // font-awesome
 import 'font-awesome/css/font-awesome.min.css'
 

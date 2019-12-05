@@ -10,9 +10,11 @@ Vue.use(Vuex);
 export const imServerStore = new Vuex.Store({
     state: {
         serverChatEn: {
-            serverChatId: Number.parseInt(Date.now() + Math.random()),
-            serverChatName: '小P',
-            avatarUrl: '/static/image/im_server_avatar.png'
+            serverChatId: 0,
+            serverChatName: '',
+            avatarUrl: '/static/image/im_server_avatar.png',
+            serverChatToken: '',
+            login: false
         },
         selectedChatEn: null, // 选取的会话对象
         currentChatEnlist: [], // 当前chat实体集合
@@ -21,6 +23,14 @@ export const imServerStore = new Vuex.Store({
         socket: null
     },
     mutations: {
+        saveLoginUserInfo: function (state, payload) {
+            const {token, userInfo: {userName, userId}} = payload
+            state.serverChatEn.serverChatToken = token
+            state.serverChatEn.serverChatId = userId
+            state.serverChatEn.serverChatName = userName
+            state.serverChatEn.login = true
+        },
+
         /**
          * 触发当前选择的chat含有新的消息
          * @param {Object} payload 载荷对象

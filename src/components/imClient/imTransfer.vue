@@ -29,12 +29,7 @@ export default {
          * init
          */
         init: function() {
-            this.$http.get({
-                url: 'getIMServerList',
-                successCallback: (res) => {
-                    this.$data.kfList = res;
-                }
-            });
+            this.$http.get('clientApi/getIMServerList').then(({data: {data}}) => this.$data.kfList = data);
             this.$data.selectedServerChatId = '';
         },
 
