@@ -66,7 +66,7 @@
             // 登录
             submitForm(formName) {
                 this.$http.post('/users/login', {
-                    userId: this.dynamicValidateForm.username,
+                    userAccount: this.dynamicValidateForm.username,
                     password: this.dynamicValidateForm.password
                 }).then(({success, data, errMsg: text}) => {
                     if (!success) {
