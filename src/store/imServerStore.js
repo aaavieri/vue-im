@@ -24,10 +24,10 @@ export const imServerStore = new Vuex.Store({
     },
     mutations: {
         saveLoginUserInfo: function (state, payload) {
-            const {token, userInfo: {userName, userId}} = payload
+            const {token, userInfo: {serverUserId, serverUserName}} = payload
             state.serverChatEn.serverChatToken = token
-            state.serverChatEn.serverChatId = userId
-            state.serverChatEn.serverChatName = userName
+            state.serverChatEn.serverChatId = serverUserId
+            state.serverChatEn.serverChatName = serverUserName
             state.serverChatEn.login = true
         },
 
