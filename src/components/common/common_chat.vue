@@ -6,6 +6,13 @@
             <div class="common_chat-main" id="common_chat_main" ref="common_chat_main">
                 <div class="common_chat-main-content">
                     <div class="inner">
+                        <!-- 系统消息 -->
+                        <div class="item sys">
+                            <!-- 1)文本类型 -->
+                            <div class="text-content">
+                                <el-button size="mini" round :loading="loadingMoreMsg" @click="moreMsg">查看更多记录</el-button>
+                            </div>
+                        </div>
                         <div v-for="(item ,index) in chatInfoEn.msgList" :key="index">
                             <!-- 系统消息 -->
                             <div v-if="item.role=='sys'" class="item sys">
@@ -15,11 +22,12 @@
                                 </div>
                             </div>
                             <!-- 客户、客服 -->
-                            <div v-else class="item" :class="{ sender: item.role == oprRoleName, receiver: item.role != oprRoleName }">
+                            <div v-else class="item" :class="{ sender: item.role === oprRoleName, receiver: item.role !== oprRoleName }">
                                 <div class="info-wrapper" :class="item.state">
                                     <!-- 头像 -->
                                     <div class="avatar-wrapper">
-                                        <img class="kf-img" :src="item.avatarUrl">
+                                        <!--<img class="kf-img" :src="item.avatar">-->
+                                        {{item.userName}}
                                     </div>
                                     <!-- 1)文本类型 -->
                                     <div v-if="item.contentType=='text'" class="item-content common_chat_emoji-wrapper-global">
@@ -85,6 +93,7 @@
                     </div>
                     <!-- 发送按钮 -->
                     <el-button type="primary" size="small" class="send-btn" :class="chatInfoEn.state" @click="sendText()" :disabled="chatInfoEn.inputContent.length==0">发送</el-button>
+                    <el-button type="danger" size="small" class="send-btn" :class="chatInfoEn.state" @click="closeSession({sessionId: chatInfoEn.sessionId})">关闭会话</el-button>
                 </div>
                 <!-- 离线 -->
                 <div v-show="chatInfoEn.state=='off' || chatInfoEn.state=='end'" class="off-wrapper">
@@ -106,6 +115,7 @@
 
 <script>
 import common_chat_emoji from './common_chat_emoji.vue';
+import swal from 'sweetalert2'
 
 export default {
     components: {
@@ -116,6 +126,7 @@ export default {
             required: true,
             type: Object,
             default: {
+                sessionId: 0,
                 inputContent: '',
                 msgList: []
             }
@@ -128,6 +139,7 @@ export default {
     },
     data() {
         return {
+            loadingMoreMsg: false,
             inputContent_setTimeout: null, // 输入文字时在输入结束才修改具体内容
             selectionRange: null, // 输入框选中的区域
             shortcutMsgList: [], // 聊天区域的快捷回复列表
@@ -187,6 +199,72 @@ export default {
                 contentType: 'text',
                 content: msgContent
             });
+        },
+
+        /**
+         * 关闭会话
+         */
+        closeSession: function ({sessionId}) {
+            const page = this
+            swal({
+                title: '确定关闭会话？',
+                text: '如果在未取得用户同意的情况下关闭会话，可能会导致用户对您的评分降低。',
+                type: 'warning',
+                showCancelButton: true,
+                confirmButtonClass: 'el-button el-button--primary',
+                confirmButtonText: '确定',
+                cancelButtonClass: 'el-button el-button--warning',
+                cancelButtonText: '取消',
+                buttonsStyling: false
+            }).then(({value}) => {
+                if (value) {
+                    this.$http.post('/serverApi/close', {sessionId}).then(({success, errMsg}) => {
+                        if (!success) {
+                            swal({
+                                title: '会话关闭失败!',
+                                text: errMsg,
+                                type: 'error',
+                                confirmButtonClass: 'el-button el-button--danger',
+                                confirmButtonText: 'OK',
+                                buttonsStyling: false
+                            })
+                        } else {
+                            swal({
+                                title: '会话关闭成功!',
+                                text: '用户将在稍后对你的服务进行评价',
+                                type: 'info',
+                                confirmButtonClass: 'el-button el-button--primary',
+                                confirmButtonText: 'OK',
+                                buttonsStyling: false
+                            })
+                        }
+                    }).catch(error => {
+                        swal({
+                            title: '会话关闭失败!',
+                            text: error.errMsg || '未知原因',
+                            type: 'error',
+                            confirmButtonClass: 'el-button el-button--danger',
+                            confirmButtonText: 'OK',
+                            buttonsStyling: false
+                        })
+                    })
+                }
+            })
+        },
+
+        moreMsg: function () {
+            const loadingComplete = () => {this.loadingMoreMsg = false}
+            this.loadingMoreMsg = true
+            let sessionId = this.chatInfoEn.sessionId
+            if (this.chatInfoEn.msgList.length > 0) {
+                sessionId = Math.min(...this.chatInfoEn.msgList.filter(msg => msg.sessionId).map(msg => msg.sessionId)) || sessionId
+            }
+            this.$emit('moreMsg', {
+                sessionId,
+                failCallback: loadingComplete,
+                successCallback: loadingComplete
+            });
+            setTimeout(loadingComplete, 5000)
         },
 
         /**

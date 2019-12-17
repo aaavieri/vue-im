@@ -5,9 +5,12 @@ const instance = axios.create({
   baseURL: '/backend'
 })
 instance.defaults.timeout = 5000
-
+const headers = JSON.parse(window.localStorage.getItem('headers') || '{}')
+Object.keys(headers).forEach(key => instance.defaults.headers.common[key] = headers[key])
 instance.addPersistentHeader = (name, value) => {
+    headers[name] = value
     instance.defaults.headers.common[name] = value
+    window.localStorage.setItem('headers', JSON.stringify(headers))
 }
 
 // 添加请求拦截器

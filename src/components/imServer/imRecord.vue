@@ -3,7 +3,7 @@
     <div class="imRecord-wrapper">
         <header class="header">
             <div class="kf-info-wrapper">
-                <img class="kf-avatar" :src="storeServerChatEn.avatarUrl" />
+                <img class="kf-avatar" :src="storeServerChatEn.avatar" />
                 <span class="kf-name position-h-v-mid">{{storeServerChatEn.serverChatName}}</span>
             </div>
             <div class="client-info-wrapper">
@@ -33,7 +33,7 @@
                     </div>
                 </div>
             </div>
-            <div v-else-if="storeCurrentChatEnlist.length==0" class="empty-wrapper">
+            <div v-else-if="storeCurrentChatEnlist.length === 0" class="empty-wrapper">
                 <div class="content">
                     <i class="iconfont fa fa-commenting-o"></i>
                     <p class="title">当前没有会话</p>

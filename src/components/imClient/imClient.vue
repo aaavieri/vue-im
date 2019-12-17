@@ -166,7 +166,7 @@ export default {
             // 模拟消息
             this.addChatMsg({
                 role: 'robot',
-                avatarUrl: this.$data.robotEn.avatarUrl,
+                avatarUrl: this.$data.robotEn.avatar,
                 contentType: 'transformServer'
             });
         },
@@ -199,7 +199,7 @@ export default {
 
                 // 接受服务端信息
                 this.$data.socket.on('SERVER_SEND_MSG', (data) => {
-                    data.msg.avatarUrl = this.$data.serverChatEn.avatarUrl;
+                    data.msg.avatar = this.$data.serverChatEn.avatar;
                     this.addChatMsg(data.msg, () => {
                         this.$refs.common_chat.goEnd();
                     });
@@ -273,7 +273,7 @@ export default {
         sendMsg: function(rs) {
             var msg = rs.msg;
             msg.role = 'client';
-            msg.avatarUrl = this.$data.clientChatEn.avatarUrl;
+            msg.avatar = this.$data.clientChatEn.avatar;
             if (this.$data.chatInfoEn.chatState == 'robot') {
                 // 机器人发送接口
             } else if (this.$data.chatInfoEn.chatState == 'agent') {

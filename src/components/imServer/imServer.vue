@@ -39,6 +39,8 @@ export default {
         selectedChat: function() {}
     },
     created() {
+    },
+    mounted() {
         this.$http.post('users/checkLogin').then(({success, errMsg}) => {
             if (!success) {
                 swal({
@@ -51,11 +53,25 @@ export default {
                 }).then(() => {
                     this.$router.push('/');
                 })
+            } else {
+                this.$http.get('serverApi/getClientList').then(({success, errMsg, data: {sessionList, server}}) => {
+                    if (!success) {
+                        swal({
+                            title: '获取用户列表失败!',
+                            text: errMsg || '未知错误',
+                            type: 'error',
+                            confirmButtonClass: 'el-button el-button--danger',
+                            confirmButtonText: 'OK',
+                            buttonsStyling: false
+                        })
+                    } else {
+                        this.$store.imServerStore.commit('saveUserInfo', server)
+                        this.$store.imServerStore.commit('addSessions', {sessionList})
+                        this.$store.imServerStore.dispatch('SERVER_ON');
+                    }
+                })
             }
         })
-    },
-    mounted() {
-        this.$store.imServerStore.dispatch('SERVER_ON');
     },
     destroyed() {
         this.$store.imServerStore.dispatch('SERVER_OFF');

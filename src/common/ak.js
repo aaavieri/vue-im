@@ -323,6 +323,8 @@ ak.Utils = {
         return rs;
     },
 
+    strToDate: (str) => new Date(str.replace('T', ' ').replace(/-/g, '/')), //=> 2015/02/24 00:00:00,
+
     /**
      * 把总秒数转换为时分秒
      */

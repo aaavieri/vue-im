@@ -74,7 +74,7 @@
                             title: '登录失败!',
                             text,
                             type: 'error',
-                            confirmButtonClass: 'el-button el-button--error',
+                            confirmButtonClass: 'el-button el-button--danger',
                             confirmButtonText: 'OK',
                             buttonsStyling: false
                         })

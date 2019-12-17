@@ -5,6 +5,7 @@
 import Vue from 'vue';
 import Vuex from 'vuex';
 import ak from '@/common/ak.js';
+import swal from 'sweetalert2'
 
 Vue.use(Vuex);
 export const imServerStore = new Vuex.Store({
@@ -12,7 +13,7 @@ export const imServerStore = new Vuex.Store({
         serverChatEn: {
             serverChatId: 0,
             serverChatName: '',
-            avatarUrl: '/static/image/im_server_avatar.png',
+            avatar: '/static/image/im_server_avatar.png',
             serverChatToken: '',
             login: false
         },
@@ -29,6 +30,84 @@ export const imServerStore = new Vuex.Store({
             state.serverChatEn.serverChatId = serverUserId
             state.serverChatEn.serverChatName = serverUserName
             state.serverChatEn.login = true
+        },
+
+        saveUserInfo: function (state, payload) {
+            const {serverUserId, serverUserName} = payload
+            state.serverChatEn.serverChatId = serverUserId
+            state.serverChatEn.serverChatName = serverUserName
+            state.serverChatEn.login = true
+        },
+
+        addSessions: function (state, payload) {
+            const {sessionList, serverName = state.serverChatEn.serverChatName} = payload
+            let lastMsgTime = null
+            sessionList.forEach(session => {
+                if (session.msgList && session.msgList.length > 0) {
+                    lastMsgTime = session.msgList[session.msgList.length - 1].createTime
+                    session.msgList.forEach(msg => {
+                        if (msg.role === 'server') {
+                            msg.userName = serverName
+                        } else if (msg.role === 'client') {
+                            msg.userName = session.clientChatEn.clientChatName
+                        }
+                    })
+                }
+                const chat = {
+                    msgList: session.msgList || [],
+                    ...session.clientChatEn,
+                    state: session.endTime ? 'off' : 'on',
+                    sessionId: session.sessionId,
+                    accessTime: lastMsgTime || session.startTime,
+                    inputContent: '',
+                    newMsgCount: 0,
+                    isFollow: false,
+                    lastMsgTime,
+                    lastMsgShowTime: null
+                }
+                let mergeChat = chat
+                const oldIndex = state.currentChatEnlist.findIndex(currentChat => currentChat.clientChatId === session.clientChatEn.clientChatId)
+                if (oldIndex < 0) {
+                    state.currentChatEnlist.push(chat)
+                } else {
+                    const allMsgList = [...chat.msgList]
+                    state.currentChatEnlist[oldIndex].msgList.forEach(oldMsg => {
+                        if (!allMsgList.find(msg => msg.historyId === oldMsg.historyId)) {
+                            allMsgList.push(oldMsg)
+                        }
+                    })
+                    allMsgList.sort((m1, m2) => {
+                        const createTime1 = ak.Utils.strToDate(m1.createTime).getTime()
+                        const createTime2 = ak.Utils.strToDate(m2.createTime).getTime()
+                        if (createTime1 !== createTime2) {
+                            return createTime1 - createTime2
+                        } else {
+                            if (m1.role === 'sys') {
+                                return -1
+                            } else if (m2.role === 'sys') {
+                                return 1
+                            } else {
+                                return 0
+                            }
+                        }
+                    })
+                    if (chat.sessionId > state.currentChatEnlist[oldIndex]) {
+                        chat.msgList = allMsgList
+                        state.currentChatEnlist[oldIndex] = chat
+                    } else {
+                        state.currentChatEnlist[oldIndex].msgList = allMsgList
+                        mergeChat = state.currentChatEnlist[oldIndex]
+                    }
+                }
+                if (state.selectedChatEn && state.selectedChatEn.clientChatId === mergeChat.clientChatId) {
+                    state.selectedChatEn = Object.assign({}, mergeChat);
+                    // Vue.nextTick(function() {});
+                }
+            })
+            // const filterChatEnlist = state.currentChatEnlist.filter(currentChat => newChatEnlist.findIndex(newChat => newChat.clientChatId === currentChat.clientChatId) < 0)
+            // newChatEnlist = newChatEnlist.concat(filterChatEnlist)
+            // newChatEnlist.forEach(chat => chat.msgList.sort((m1, m2) => m1.createTime.getTime() - m2.createTime.getTime))
+            // state.currentChatEnlist = newChatEnlist
         },
 
         /**
@@ -169,7 +248,7 @@ export const imServerStore = new Vuex.Store({
                 }
 
                 // 3.若选中的当前chatEn 与 传入的一直，更新选中额chatEn
-                if (context.state.selectedChatEn && context.state.selectedChatEn.clientChatId == chatEn.clientChatId) {
+                if (context.state.selectedChatEn && context.state.selectedChatEn.clientChatId === chatEn.clientChatId) {
                     context.state.selectedChatEn = Object.assign({}, chatEn);
                     Vue.nextTick(function() {});
                 }
@@ -193,20 +272,28 @@ export const imServerStore = new Vuex.Store({
                 }
 
                 // 1.设定默认值
-                msg.createTime = msg.createTime == undefined ? new Date() : msg.createTime;
+                msg.createTime = msg.createTime || (new Date()).toISOString();
 
-                var msgList = chatEn.msgList ? chatEn.msgList : [];
+                const msgList = chatEn.msgList || [];
+
+                // 如果有重复的消息，则根据historyId来覆盖原有的消息
+                const oldIndex = msgList.findIndex(oldMsg => oldMsg.historyId === msg.historyId)
+                if (oldIndex >= 0) {
+                    msgList[oldIndex] = msg
+                    return
+                }
 
                 // 2.插入消息
                 // 1)插入日期
                 // 实际场景中，在消息上方是否显示时间是由后台传递给前台的消息中附加上的，可参考 微信Web版
                 // 此处进行手动设置，5分钟之内的消息，只显示一次消息
-                msg.createTime = new Date(msg.createTime);
+                // msg.createTime = new Date(msg.createTime);
                 if (chatEn.lastMsgShowTime == null || msg.createTime.getTime() - chatEn.lastMsgShowTime.getTime() > 1000 * 60 * 5) {
                     msgList.push({
                         role: 'sys',
                         contentType: 'text',
-                        content: ak.Utils.getDateTimeStr(msg.createTime, 'H:i')
+                        content: ak.Utils.getDateTimeStr(msg.createTime, 'H:i'),
+                        createTime: msg.createTime
                     });
                     chatEn.lastMsgShowTime = msg.createTime;
                 }
@@ -232,7 +319,7 @@ export const imServerStore = new Vuex.Store({
                         break;
                 }
                 // 更新列表
-                if (context.state.selectedChatEn && chatEn.clientChatId == context.state.selectedChatEn.clientChatId) {
+                if (context.state.selectedChatEn && chatEn.clientChatId === context.state.selectedChatEn.clientChatId) {
                     chatEn.newMsgCount = 0;
                     context.state.selectedChatEn = Object.assign({}, chatEn);
                     context.commit('triggerHaveNewMsgDelegate');
@@ -244,7 +331,7 @@ export const imServerStore = new Vuex.Store({
                 context.commit('sortCurrentChatEnlist', {});
 
                 // 5.加入通知
-                if (msg.isNewMsg && msg.role == 'client' && msg.contentType != 'preInput') {
+                if (msg.isNewMsg && msg.role === 'client' && msg.contentType !== 'preInput') {
                     context.dispatch('addNotificationChat', {
                         chatEn: chatEn,
                         oprType: 'msg'
@@ -397,19 +484,20 @@ export const imServerStore = new Vuex.Store({
                     serverChatEn: {
                         serverChatId: context.state.serverChatEn.serverChatId,
                         serverChatName: context.state.serverChatEn.serverChatName,
-                        avatarUrl:context.state.serverChatEn.avatarUrl
+                        avatar:context.state.serverChatEn.avatar
                     }
                 });
 
                 // 访客端上线
                 context.state.socket.on('CLIENT_ON', function(data) {
                     // 1)增加客户列表
-                    context.dispatch('addClientChat', {
-                        newChatEn: {
-                            clientChatId: data.clientChatEn.clientChatId,
-                            clientChatName: data.clientChatEn.clientChatName
-                        }
-                    });
+                    // context.dispatch('addClientChat', {
+                    //     newChatEn: {
+                    //         clientChatId: data.clientChatEn.clientChatId,
+                    //         clientChatName: data.clientChatEn.clientChatName
+                    //     }
+                    // });
+                    context.commit('addSessions', {sessionList: [data]})
                 });
 
                 // 访客端离线
@@ -428,16 +516,27 @@ export const imServerStore = new Vuex.Store({
                         msg: {
                             role: 'sys',
                             contentType: 'text',
-                            content: '客户断开连接'
+                            content: '客户断开连接',
                         }
                     });
                 });
 
                 // 访客端发送了信息
-                context.state.socket.on('CLIENT_SEND_MSG', function(data) {
+                context.state.socket.on('CLIENT_SEND_MSG', function({clientChatEn, msg, success = true, errMsg = ''}) {
+                    if (!success) {
+                        swal({
+                            title: '发送失败!',
+                            text: errMsg,
+                            type: 'error',
+                            confirmButtonClass: 'el-button el-button--danger',
+                            confirmButtonText: 'OK',
+                            buttonsStyling: false
+                        })
+                        return
+                    }
                     context.dispatch('addChatMsg', {
-                        clientChatId: data.clientChatEn.clientChatId,
-                        msg: data.msg
+                        clientChatId: clientChatEn.clientChatId,
+                        msg: {...msg, userName: context.state.serverChatEn.serverChatName}
                     });
                 });
 
@@ -465,12 +564,13 @@ export const imServerStore = new Vuex.Store({
         /**
          * 发送消息
          */
-        sendMsg: function(context, { clientChatId, msg }) {
-            console.log(clientChatId);
-            context.state.socket.emit('SERVER_SEND_MSG', {
-                clientChatId: clientChatId,
-                msg: msg
-            });
+        sendMsg: function(context, message) {
+            // context.state.socket.emit('SERVER_SEND_MSG', {
+            //     clientChatId,
+            //     serverChatId,
+            //     msg: msg
+            // });
+            context.state.socket.emit('SERVER_SEND_MSG', message);
         }
     },
     getters: {

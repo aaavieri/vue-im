@@ -15,9 +15,10 @@ import ElementUI from 'element-ui';
 import 'element-ui/lib/theme-chalk/index.css';
 
 import HttpPlugin from '@/plugin/HttpPlugin'
+import FuncPlugin from '@/plugin/FuncPlugin'
 
 Vue.use(ElementUI);
-
+Vue.use(FuncPlugin);
 Vue.use(HttpPlugin);
 // font-awesome
 import 'font-awesome/css/font-awesome.min.css'
