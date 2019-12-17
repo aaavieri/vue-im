@@ -288,7 +288,8 @@ export const imServerStore = new Vuex.Store({
                 // 实际场景中，在消息上方是否显示时间是由后台传递给前台的消息中附加上的，可参考 微信Web版
                 // 此处进行手动设置，5分钟之内的消息，只显示一次消息
                 // msg.createTime = new Date(msg.createTime);
-                if (chatEn.lastMsgShowTime == null || msg.createTime.getTime() - chatEn.lastMsgShowTime.getTime() > 1000 * 60 * 5) {
+                if (chatEn.lastMsgShowTime == null
+                    || new Date(msg.createTime).getTime() - new Date(chatEn.lastMsgShowTime).getTime() > 1000 * 60 * 5) {
                     msgList.push({
                         role: 'sys',
                         contentType: 'text',
@@ -534,9 +535,10 @@ export const imServerStore = new Vuex.Store({
                         })
                         return
                     }
+                    const {clientChatName: userName = ''} = context.state.currentChatEnlist.find(({clientChatId}) => clientChatId === clientChatEn.clientChatId)
                     context.dispatch('addChatMsg', {
                         clientChatId: clientChatEn.clientChatId,
-                        msg: {...msg, userName: context.state.serverChatEn.serverChatName}
+                        msg: {...msg, userName}
                     });
                 });
 

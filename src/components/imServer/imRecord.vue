@@ -14,12 +14,13 @@
         <main class="main">
             <div v-if="storeCurrentChatEnlist.length>0" class="item-list">
                 <div class="item" v-for="(tmpEn, index) in storeCurrentChatEnlist" :key="index" @click="selectChat(tmpEn)" v-bind:class="{ active: selectedChatEn!=null && tmpEn.clientChatId==selectedChatEn.clientChatId}">
-                    <div class="followicon-wrapper">
-                        <i class="iconfont icon-zhidingwujiaoxing position-h-v-mid" :class="{ active: tmpEn.isFollow}" @click.stop="toggleFollowIcon(tmpEn)"></i>
-                    </div>
+                    <!--<div class="followicon-wrapper">-->
+                        <!--<i class="iconfont icon-zhidingwujiaoxing position-h-v-mid" :class="{ active: tmpEn.isFollow}" @click.stop="toggleFollowIcon(tmpEn)"></i>-->
+                    <!--</div>-->
                     <!-- 客户端头像 -->
                     <div class="platicon-wrapper">
-                        <div class="header-img position-h-v-mid" :class="getBgClass(tmpEn.clientChatName)">{{tmpEn.clientChatName.substr(0,1)}}</div>
+                        <img v-if="tmpEn.avatar" class="kf-img position-h-v-mid" :src="tmpEn.avatar">
+                        <div v-else class="header-img position-h-v-mid" :class="getBgClass(tmpEn.clientChatName)">{{tmpEn.clientChatName.substr(0,1)}}</div>
                     </div>
                     <div class="info-wrapper">
                         <p class="first-p">
@@ -202,6 +203,10 @@ export default {
                             background-color: #ff5722;
                         }
                     }
+                    .kf-img {
+                        width: 40px;
+                        height: 40px;
+                    }
                 }
                 .info-wrapper {
                     position: relative;
@@ -280,4 +285,9 @@ export default {
         }
     }
 }
+
+/*.kf-img {*/
+    /*width: 40px;*/
+    /*height: 40px;*/
+/*}*/
 </style>
