@@ -253,7 +253,10 @@ export default {
         },
 
         moreMsg: function () {
-            const loadingComplete = () => {this.loadingMoreMsg = false}
+            const loadingComplete = () => {
+                this.loadingMoreMsg = false
+                this.goTop()
+            }
             this.loadingMoreMsg = true
             let sessionId = this.chatInfoEn.sessionId
             if (this.chatInfoEn.msgList.length > 0) {
@@ -582,6 +585,14 @@ export default {
             this.$emit('chatCallback', {
                 eventType: emitType,
                 data: data
+            });
+        },
+
+        goTop: function() {
+            this.$nextTick(() => {
+                setTimeout(() => {
+                    this.$refs.common_chat_main.scrollTop = 0;
+                }, 200);
             });
         },
 

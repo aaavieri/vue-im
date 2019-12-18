@@ -54,7 +54,7 @@ export default {
                     this.$router.push('/');
                 })
             } else {
-                this.$http.get('serverApi/getClientList').then(({success, errMsg, data: {sessionList, server}}) => {
+                this.$http.get('serverApi/getClientList').then(({success, errMsg, data = {}}) => {
                     if (!success) {
                         swal({
                             title: '获取用户列表失败!',
@@ -65,6 +65,7 @@ export default {
                             buttonsStyling: false
                         })
                     } else {
+                        const {sessionList, server} = data
                         this.$store.imServerStore.commit('saveUserInfo', server)
                         this.$store.imServerStore.commit('addSessions', {sessionList})
                         this.$store.imServerStore.dispatch('SERVER_ON');

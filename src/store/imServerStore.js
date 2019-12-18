@@ -13,6 +13,7 @@ export const imServerStore = new Vuex.Store({
         serverChatEn: {
             serverChatId: 0,
             serverChatName: '',
+            channelId: 0,
             avatar: '/static/image/im_server_avatar.png',
             serverChatToken: '',
             login: false
@@ -25,17 +26,19 @@ export const imServerStore = new Vuex.Store({
     },
     mutations: {
         saveLoginUserInfo: function (state, payload) {
-            const {token, userInfo: {serverUserId, serverUserName}} = payload
+            const {token, userInfo: {serverUserId, serverUserName, channelId}} = payload
             state.serverChatEn.serverChatToken = token
             state.serverChatEn.serverChatId = serverUserId
             state.serverChatEn.serverChatName = serverUserName
+            state.serverChatEn.channelId = channelId
             state.serverChatEn.login = true
         },
 
         saveUserInfo: function (state, payload) {
-            const {serverUserId, serverUserName} = payload
+            const {serverUserId, serverUserName, channelId} = payload
             state.serverChatEn.serverChatId = serverUserId
             state.serverChatEn.serverChatName = serverUserName
+            state.serverChatEn.channelId = channelId
             state.serverChatEn.login = true
         },
 

@@ -7,8 +7,11 @@
                 <span class="kf-name position-h-v-mid">{{storeServerChatEn.serverChatName}}</span>
             </div>
             <div class="client-info-wrapper">
-                <p>
-                    <i class="fa fa-user on-line"></i>{{storeCurrentChatEnlist.length}}</p>
+                <!--<p>-->
+                    <!--<i class="fa fa-user on-line"></i>{{storeCurrentChatEnlist.length}}-->
+                <!--</p>-->
+                <i class="fa fa-user on-line"></i>{{storeCurrentChatEnlist.length}}
+                <el-button icon="el-icon-search" style="border: 0" circle @click="doSearch"/>
             </div>
         </header>
         <main class="main">
@@ -32,6 +35,9 @@
                             <el-badge class="newMsgCount" :value="tmpEn.newMsgCount" :max="99" v-show="tmpEn.newMsgCount>0"></el-badge>
                         </p>
                     </div>
+                    <div class="followicon-wrapper">
+                        <el-button size="small" type="success" class="download-button" icon="el-icon-download" circle @click="download(tmpEn)" />
+                    </div>
                 </div>
             </div>
             <div v-else-if="storeCurrentChatEnlist.length === 0" class="empty-wrapper">
@@ -45,6 +51,7 @@
 </template>
 
 <script>
+import swal from 'sweetalert2'
 export default {
     data() {
         return {};
@@ -63,6 +70,81 @@ export default {
     },
     watch: {},
     methods: {
+
+        download: function (en) {
+            swal({
+                title: `下载客户【${en.clientChatName}】的记录`,
+                input: 'radio',
+                inputOptions: {
+                    0: '仅限本客服',
+                    1: '全体客服'
+                },
+                inputValidator: (value) => {
+                    if (!value) {
+                        return '您需要选择下载范围'
+                    }
+                }
+            }).then(({value = -1}) => {
+                if (value === -1) {
+                    return
+                }
+                this.$http({
+                    url: `serverApi/download/${value}/${this.storeServerChatEn.channelId}/${en.clientChatId}`,
+                    method: 'GET',
+                    responseType: 'blob', // important
+                }).then(({data, headers: {filename}}) => {
+                    const url = window.URL.createObjectURL(new Blob([data]));
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.setAttribute('download', filename);
+                    document.body.appendChild(link);
+                    link.click();
+                })
+            })
+        },
+        doSearch: function () {
+            const inputOptions = ['<option value="0">全部客户</option>',
+                ...this.storeCurrentChatEnlist.map(chat => `<option value="${chat.clientChatId}">客户【${chat.clientChatName}】</option>`)]
+            swal({
+                title: `搜索与客户沟通的记录`,
+                html: `<span class="swal2-label">请输入关键字，若想搜索多个则用半角空格分开</span>
+                    <input id="swal-input-keyword" class="swal2-input">
+                    <select id="swal-select-openid" class="swal2-select" style="display: flex;">
+                    ${inputOptions.join('\n')}
+                    </select>`,
+                focusConfirm: false,
+                preConfirm: () => {
+                    return [
+                        document.getElementById('swal-input-keyword').value,
+                        document.getElementById('swal-select-openid').value
+                    ]
+                },
+                inputValidator: (value) => {
+                    if (!value) {
+                        return '您需要选择查询范围'
+                    }
+                }
+            }).then(({value = ['', -1]}) => {
+                const [keyword, openId] = value
+                if (openId === -1) {
+                    return
+                }
+                this.$http.post('serverApi/searchHistory', {keyword, openId}).then(({success, errMsg, data}) => {
+                    if (!success) {
+                        swal({
+                            title: '检索失败!',
+                            text: errMsg,
+                            type: 'error',
+                            confirmButtonClass: 'el-button el-button--danger',
+                            confirmButtonText: 'OK',
+                            buttonsStyling: false
+                        })
+                    } else {
+                        console.log(data)
+                    }
+                })
+            })
+        },
         /**
          * 选中当前列表的chat
          * @param {Object} en call实体类
@@ -259,6 +341,27 @@ export default {
                             }
                         }
                     }
+                    .third-p {
+                        clear: both;
+                        padding-top: 11px;
+                        .name {
+                            display: inline-block;
+                            float: left;
+                            width: 50%;
+                            font-size: 14px;
+                            color: #3e3e3e;
+                            white-space: nowrap;
+                            text-overflow: ellipsis;
+                            overflow: hidden;
+                            text-align: left;
+                            font-weight: bolder;
+                        }
+                        .lastMsgTime {
+                            float: right;
+                            font-size: 12px;
+                            color: #8d8d8d;
+                        }
+                    }
                 }
             }
         }
@@ -285,7 +388,12 @@ export default {
         }
     }
 }
-
+.download-button {
+    position: absolute;
+    top: 50%;
+    transform: translate(20%, -50%);
+    /*border: 0;*/
+}
 /*.kf-img {*/
     /*width: 40px;*/
     /*height: 40px;*/

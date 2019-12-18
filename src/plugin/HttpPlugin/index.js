@@ -38,7 +38,11 @@ instance.interceptors.response.use(function (response) {
   if (instance.loading) {
     instance.loading.close()
   }
-  return response.data;
+  if (response.headers['content-type'].indexOf('application/json') >= 0) {
+      return response.data;
+  } else {
+      return response;
+  }
 }, function (error) {
   if (instance.loading) {
     instance.loading.close()
