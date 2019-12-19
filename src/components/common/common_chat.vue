@@ -93,7 +93,7 @@
                     </div>
                     <!-- 发送按钮 -->
                     <el-button type="primary" size="small" class="send-btn" :class="chatInfoEn.state" @click="sendText()" :disabled="chatInfoEn.inputContent.length==0">发送</el-button>
-                    <el-button type="danger" size="small" class="send-btn" :class="chatInfoEn.state" @click="closeSession({sessionId: chatInfoEn.sessionId})">关闭会话</el-button>
+                    <el-button type="danger" size="small" class="send-btn" :class="chatInfoEn.state" @click="closeSession(chatInfoEn)">关闭会话</el-button>
                 </div>
                 <!-- 离线 -->
                 <div v-show="chatInfoEn.state=='off' || chatInfoEn.state=='end'" class="off-wrapper">
@@ -204,8 +204,7 @@ export default {
         /**
          * 关闭会话
          */
-        closeSession: function ({sessionId}) {
-            const page = this
+        closeSession: function (chatInfoEn) {
             swal({
                 title: '确定关闭会话？',
                 text: '如果在未取得用户同意的情况下关闭会话，可能会导致用户对您的评分降低。',
@@ -218,7 +217,7 @@ export default {
                 buttonsStyling: false
             }).then(({value}) => {
                 if (value) {
-                    this.$http.post('/serverApi/close', {sessionId}).then(({success, errMsg}) => {
+                    this.$http.post('/serverApi/close', {sessionId: chatInfoEn.sessionId}).then(({success, errMsg}) => {
                         if (!success) {
                             swal({
                                 title: '会话关闭失败!',
@@ -237,6 +236,7 @@ export default {
                                 confirmButtonText: 'OK',
                                 buttonsStyling: false
                             })
+                            chatInfoEn.state = 'off'
                         }
                     }).catch(error => {
                         swal({

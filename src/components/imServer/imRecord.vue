@@ -11,8 +11,14 @@
                     <!--<i class="fa fa-user on-line"></i>{{storeCurrentChatEnlist.length}}-->
                 <!--</p>-->
                 <i class="fa fa-user on-line"></i>{{storeCurrentChatEnlist.length}}
-                <el-button icon="el-icon-search" style="border: 0" circle @click="doSearch"/>
+                <!--<el-button icon="el-icon-search" style="border: 0" circle @click="doSearch"/>-->
             </div>
+            <el-menu class="menu el-menu-demo" default-active="1-1" mode="horizontal">
+                <el-submenu index="1-1">
+                    <template slot="title"><i class="el-icon-menu"></i></template>
+                    <el-menu-item index="2-1"><el-button size="medium" icon="el-icon-search" style="border: 0" @click="doSearch">搜索</el-button></el-menu-item>
+                </el-submenu>
+            </el-menu>
         </header>
         <main class="main">
             <div v-if="storeCurrentChatEnlist.length>0" class="item-list">
@@ -47,6 +53,33 @@
                 </div>
             </div>
         </main>
+        <el-dialog title="搜索结果" :visible.sync="dialogTableVisible">
+            <el-table :data="searchResult" height="500" border style="padding: 10px">
+                <el-table-column label="操作" width="150">
+                    <template slot-scope="scope">
+                        <el-button type="primary"
+                                   size="mini" @click="getWholeSession(scope.row)">完整会话</el-button>
+                    </template>
+                </el-table-column>
+                <el-table-column property="history.displayTime" label="消息时间" width="170"/>
+                <!--<el-table-column property="client.userName" label="发送者" width="100"></el-table-column>-->
+                <el-table-column
+                    label="发送者"
+                    width="100">
+                    <template slot-scope="scope">
+                        <span v-if="scope.row.history.type === 0" style="margin-left: 10px">{{ scope.row.client.userName }}</span>
+                        <span v-else>{{ storeServerChatEn.serverChatName }}</span>
+                    </template>
+                </el-table-column>
+                <el-table-column
+                    label="消息内容"
+                    width="250">
+                    <template slot-scope="scope">
+                        <span v-for="(message) in scope.row.history.messageList" :class="message.isDelimiter ? 'search-keyword' : ''">{{ message.content }}</span>
+                    </template>
+                </el-table-column>
+            </el-table>
+        </el-dialog>
     </div>
 </template>
 
@@ -54,7 +87,10 @@
 import swal from 'sweetalert2'
 export default {
     data() {
-        return {};
+        return {
+            dialogTableVisible: false,
+            searchResult: []
+        };
     },
     computed: {
         selectedChatEn() {
@@ -70,7 +106,6 @@ export default {
     },
     watch: {},
     methods: {
-
         download: function (en) {
             swal({
                 title: `下载客户【${en.clientChatName}】的记录`,
@@ -140,10 +175,45 @@ export default {
                             buttonsStyling: false
                         })
                     } else {
-                        console.log(data)
+                        this.dialogTableVisible = true
+                        this.searchResult = data
                     }
                 })
             })
+        },
+
+        getWholeSession: function ({history, client}) {
+            const {historyId, sessionId} = history
+            const chat = this.storeCurrentChatEnlist.find(chat => chat.msgList.find(msg => msg.historyId === historyId))
+            const closeFunc = () => this.dialogTableVisible = false
+            if (chat) {
+                this.selectChat(chat)
+                this.$nextTick(closeFunc)
+            } else {
+                this.$http.get(`serverApi/getSession/${sessionId}`).then(({success, errMsg, data: session}) => {
+                    if (!success) {
+                        swal({
+                            title: '查看会话失败!',
+                            text: errMsg,
+                            type: 'error',
+                            confirmButtonClass: 'el-button el-button--danger',
+                            confirmButtonText: 'OK',
+                            buttonsStyling: false
+                        })
+                    } else {
+                        session.clientChatEn = {
+                            clientChatId: client.openId,
+                            clientChatName: client.userName
+                        }
+                        this.$store.imServerStore.commit('addSessions', {
+                            sessionList: [session],
+                            serverName: this.storeServerChatEn.serverChatName
+                        })
+                        this.selectChat(session.clientChatEn)
+                        this.$nextTick(closeFunc)
+                    }
+                })
+            }
         },
         /**
          * 选中当前列表的chat
@@ -196,13 +266,13 @@ export default {
     & > .header {
         display: flex;
         align-items: center;
-        height: 50px;
+        height: 60px;
         border-bottom: 1px solid #e6e6e6;
         .kf-info-wrapper {
             position: relative;
             width: 150px;
             height: 50px;
-            padding: 0 20px;
+            padding: 0 0 0 10px;
             .kf-avatar {
                 width: 50px;
                 height: 50px;
@@ -218,6 +288,10 @@ export default {
             .fa {
                 margin-right: 10px;
             }
+        }
+        .menu {
+            padding-left: 0px;
+            border-bottom: 0px
         }
     }
     & > .main {
@@ -393,6 +467,9 @@ export default {
     top: 50%;
     transform: translate(20%, -50%);
     /*border: 0;*/
+}
+.search-keyword {
+    color: red;
 }
 /*.kf-img {*/
     /*width: 40px;*/
