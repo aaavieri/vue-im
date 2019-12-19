@@ -23,7 +23,7 @@
                             </div>
                             <!-- 客户、客服 -->
                             <div v-else class="item" :class="{ sender: item.role === oprRoleName, receiver: item.role !== oprRoleName }">
-                                <div class="info-wrapper" :class="item.state">
+                                <div class="info-wrapper" :class="item.state" :id="'history' + item.historyId" ref="historyDivs">
                                     <!-- 头像 -->
                                     <div class="avatar-wrapper">
                                         <!--<img class="kf-img" :src="item.avatar">-->
@@ -35,7 +35,11 @@
                                     </div>
                                     <!-- 2)图片类型 -->
                                     <div v-else-if="item.contentType=='image'" class="item-content">
-                                        <img class="img" :src="item.fileUrl" @click="imgViewDialog_show(item)">
+                                        <img class="img" :src="item.content" @click="imgViewDialog_show(item)">
+                                    </div>
+                                    <!-- 3)语音类型 -->
+                                    <div v-else-if="item.contentType=='sound'" class="item-content">
+                                        <audio :src="item.content" preload="true" controls="controls"></audio>
                                     </div>
                                     <!-- 3)文件类型 -->
                                     <div v-else-if="item.contentType=='file'" class="item-content">
@@ -538,7 +542,7 @@ export default {
          */
         imgViewDialog_show: function(item) {
             this.$data.imgViewDialogVisible = true;
-            this.$data.imgViewDialog_imgSrc = item.fileUrl;
+            this.$data.imgViewDialog_imgSrc = item.content;
         },
 
         /**
@@ -600,11 +604,23 @@ export default {
          * 聊天记录滚动到底部
          */
         goEnd: function() {
+            console.log(this.$refs.historyDivs)
             this.$nextTick(() => {
                 setTimeout(() => {
                     this.$refs.common_chat_main.scrollTop = this.$refs.common_chat_main.scrollHeight;
                 }, 100);
             });
+        },
+
+        goHistoryById: function (historyId) {
+            const focusDiv = this.$refs.historyDivs.find(div => div.id === `history${historyId}`)
+            if (focusDiv) {
+                this.$nextTick(() => {
+                    setTimeout(() => {
+                        this.$refs.common_chat_main.scrollTop = focusDiv.offsetTop;
+                    }, 350);
+                });
+            }
         }
     },
     mounted() {
