@@ -14,8 +14,8 @@ export const imServerStore = new Vuex.Store({
             serverChatId: 0,
             serverChatName: '',
             channelId: 0,
-            avatar: '/static/image/im_server_avatar.png',
-            serverChatToken: '',
+            avatar: 'static/image/im_server_avatar.png',
+            serverChatToken: window.localStorage.getItem('serverChatToken'),
             login: false
         },
         selectedChatEn: null, // 选取的会话对象
@@ -28,6 +28,7 @@ export const imServerStore = new Vuex.Store({
         saveLoginUserInfo: function (state, payload) {
             const {token, userInfo: {serverUserId, serverUserName, channelId}} = payload
             state.serverChatEn.serverChatToken = token
+            window.localStorage.setItem('serverChatToken', token)
             state.serverChatEn.serverChatId = serverUserId
             state.serverChatEn.serverChatName = serverUserName
             state.serverChatEn.channelId = channelId
@@ -40,6 +41,11 @@ export const imServerStore = new Vuex.Store({
             state.serverChatEn.serverChatName = serverUserName
             state.serverChatEn.channelId = channelId
             state.serverChatEn.login = true
+        },
+
+        saveUserToken: function (state, {token}) {
+            state.serverChatEn.serverChatToken = token
+            window.localStorage.setItem('serverChatToken', token)
         },
 
         addSessions: function (state, payload) {
@@ -481,15 +487,17 @@ export const imServerStore = new Vuex.Store({
          * 服务端上线
          */
         SERVER_ON: function(context, payload) {
-            context.state.socket = require('socket.io-client')('http://localhost:3001');
+            // context.state.socket = require('socket.io-client')('http://localhost:8081/socket/');
+            context.state.socket = require('socket.io-client').connect({path: '/crmSocket'});
             context.state.socket.on('connect', function() {
                 // 服务端上线
                 context.state.socket.emit('SERVER_ON', {
                     serverChatEn: {
                         serverChatId: context.state.serverChatEn.serverChatId,
                         serverChatName: context.state.serverChatEn.serverChatName,
-                        avatar:context.state.serverChatEn.avatar
-                    }
+                        avatar: context.state.serverChatEn.avatar
+                    },
+                    serverChatToken: context.state.serverChatEn.serverChatToken
                 });
 
                 // 访客端上线
@@ -545,6 +553,22 @@ export const imServerStore = new Vuex.Store({
                     });
                 });
 
+                context.state.socket.on('SYSTEM_SEND_ERROR_MSG', function ({errMsg = '未知错误'}) {
+                    // context.commit('saveUserToken', {token})
+                    swal({
+                        title: '连接服务器失败!',
+                        text: errMsg,
+                        type: 'error',
+                        confirmButtonClass: 'el-button el-button--danger',
+                        confirmButtonText: 'OK',
+                        buttonsStyling: false
+                    })
+                })
+
+                context.state.socket.on('SYSTEM_REFRESH_TOKEN_MSG', function (token) {
+                    context.commit('saveUserToken', {token})
+                })
+
                 // 离开
                 window.addEventListener('beforeunload', () => {
                     context.dispatch('SERVER_OFF');
@@ -575,7 +599,10 @@ export const imServerStore = new Vuex.Store({
             //     serverChatId,
             //     msg: msg
             // });
-            context.state.socket.emit('SERVER_SEND_MSG', message);
+            context.state.socket.emit('SERVER_SEND_MSG', {
+                ...message,
+                serverChatToken: context.state.serverChatEn.serverChatToken
+            });
         }
     },
     getters: {

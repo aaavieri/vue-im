@@ -8,36 +8,15 @@
 export default {
     name: 'App',
     data() {
-        return {
-            interval: 0
-        }
+        return {}
     },
     computed: {
-        login() {
-            return this.$store.imServerStore.getters.serverChatEn.login;
-        }
     },
-    watch: {
-        login(value) {
-            if (value) {
-                this.refreshToken()
-            }
-        }
-    },
-    methods: {
-        refreshToken() {
-            this.interval = setInterval(() => {
-                this.$http.post('serverApi/refreshToken').then(({data: {token} = {}}) => {
-                    if (token) {
-                        this.$http.addPersistentHeader('token', token)
-                    }
-                })
-            }, 7000 * 1000)
-        }
-    },
-    beforeDestroy() {
-        clearInterval(this.interval)
-    }
+    watch: {},
+    methods: {},
+    // beforeDestroy() {
+    //     clearInterval(this.interval)
+    // }
 };
 </script>
 

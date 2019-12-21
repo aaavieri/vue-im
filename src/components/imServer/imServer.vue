@@ -7,6 +7,20 @@
                     <el-submenu index="1-1">
                         <template slot="title"><i class="el-icon-menu"></i></template>
                         <el-menu-item index="2-1"><el-button size="medium" icon="el-icon-search" style="border: 0" @click="doSearch">搜索</el-button></el-menu-item>
+                        <el-menu-item index="2-2">
+                            <el-popover
+                                placement="top"
+                                width="160"
+                                v-model="visible">
+                                <p>这是一段内容这是一段内容确定删除吗？</p>
+                                <div style="text-align: right; margin: 0">
+                                    <el-button size="mini" type="text" @click="visible = false">取消</el-button>
+                                    <el-button type="primary" size="mini" @click="visible = false">确定</el-button>
+                                </div>
+                                <el-button size="medium" slot="reference" icon="el-icon-search" style="border: 0" @click="doSearch">搜索</el-button>
+                            </el-popover>
+                        </el-menu-item>
+                        <el-menu-item index="2-3"><el-button size="medium" icon="el-icon-close" style="border: 0" @click="logout">退出</el-button></el-menu-item>
                     </el-submenu>
                 </el-menu>
             </im-record>
@@ -68,9 +82,18 @@ export default {
         },
         storeCurrentChatEnlist() {
             return this.$store.imServerStore.getters.currentChatEnlist;
+        },
+        serverUserToken() {
+            return this.$store.imServerStore.getters.serverChatEn.serverChatToken;
         }
     },
-    watch: {},
+    watch: {
+        serverUserToken(value) {
+            if (value) {
+                this.$http.addPersistentHeader('token', value)
+            }
+        }
+    },
     methods: {
         /**
          * 选中了会话
@@ -120,13 +143,37 @@ export default {
                 })
             })
         },
-
+        logout: function () {
+            this.$http.post('users/logout', {serverUserId: this.storeServerChatEn.serverChatId}).then(({success, errMsg}) => {
+                if (!success) {
+                    swal({
+                        title: '退出失败!',
+                        text: errMsg || '未知错误',
+                        type: 'error',
+                        confirmButtonClass: 'el-button el-button--danger',
+                        confirmButtonText: 'OK',
+                        buttonsStyling: false
+                    })
+                } else {
+                    swal({
+                        title: '退出成功!',
+                        text: '即将跳转登录页面',
+                        type: 'success',
+                        confirmButtonClass: 'el-button el-button--success',
+                        confirmButtonText: 'OK',
+                        buttonsStyling: false
+                    }).then(() => this.$router.push('/login'))
+                }
+            })
+        },
         getWholeSession: function ({history, client}) {
             const {historyId, sessionId} = history
             const chat = this.storeCurrentChatEnlist.find(chat => chat.msgList.find(msg => msg.historyId === historyId))
             const closeFunc = () => {
                 this.dialogTableVisible = false
-                this.$refs.im_chat.$refs.common_chat.goHistoryById(historyId)
+                if (this.$refs.im_chat) {
+                    this.$refs.im_chat.$refs.common_chat.goHistoryById(historyId)
+                }
             }
             if (chat) {
                 this.$store.imServerStore.dispatch('selectChat', { clientChatId: chat.clientChatId });
@@ -161,36 +208,21 @@ export default {
     created() {
     },
     mounted() {
-        this.$http.post('users/checkLogin').then(({success, errMsg}) => {
+        this.$http.get('serverApi/getInitData').then(({success, errMsg, data = {}}) => {
             if (!success) {
                 swal({
-                    title: '错误!',
-                    text: errMsg || '您尚未登录',
+                    title: '获取用户列表失败!',
+                    text: errMsg || '未知错误',
                     type: 'error',
                     confirmButtonClass: 'el-button el-button--danger',
                     confirmButtonText: 'OK',
                     buttonsStyling: false
-                }).then(() => {
-                    this.$router.push('/');
                 })
             } else {
-                this.$http.get('serverApi/getClientList').then(({success, errMsg, data = {}}) => {
-                    if (!success) {
-                        swal({
-                            title: '获取用户列表失败!',
-                            text: errMsg || '未知错误',
-                            type: 'error',
-                            confirmButtonClass: 'el-button el-button--danger',
-                            confirmButtonText: 'OK',
-                            buttonsStyling: false
-                        })
-                    } else {
-                        const {sessionList, server} = data
-                        this.$store.imServerStore.commit('saveUserInfo', server)
-                        this.$store.imServerStore.commit('addSessions', {sessionList})
-                        this.$store.imServerStore.dispatch('SERVER_ON');
-                    }
-                })
+                const {sessionList, server} = data
+                this.$store.imServerStore.commit('saveUserInfo', server)
+                this.$store.imServerStore.commit('addSessions', {sessionList})
+                this.$store.imServerStore.dispatch('SERVER_ON');
             }
         })
     },

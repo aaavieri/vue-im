@@ -11,6 +11,7 @@ instance.addPersistentHeader = (name, value) => {
     headers[name] = value
     instance.defaults.headers.common[name] = value
     window.localStorage.setItem('headers', JSON.stringify(headers))
+    console.log(value)
 }
 
 // 添加请求拦截器

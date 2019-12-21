@@ -21,7 +21,7 @@ Vue.use(ElementUI);
 Vue.use(FuncPlugin);
 Vue.use(HttpPlugin);
 // font-awesome
-import 'font-awesome/css/font-awesome.min.css'
+// import 'font-awesome/css/font-awesome.min.css'
 
 // config
 Vue.config.productionTip = false;

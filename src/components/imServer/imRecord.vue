@@ -10,7 +10,7 @@
                 <!--<p>-->
                     <!--<i class="fa fa-user on-line"></i>{{storeCurrentChatEnlist.length}}-->
                 <!--</p>-->
-                <i class="fa fa-user on-line"></i>{{storeCurrentChatEnlist.length}}
+                <i class="el-icon-user-solid"></i>{{storeCurrentChatEnlist.length}}
                 <!--<el-button icon="el-icon-search" style="border: 0" circle @click="doSearch"/>-->
             </div>
             <slot name="header-right"/>
@@ -37,7 +37,7 @@
                         </p>
                     </div>
                     <div class="followicon-wrapper">
-                        <el-button size="small" type="success" class="download-button" icon="el-icon-download" circle @click="download(tmpEn)" />
+                        <el-button size="small" type="success" class="download-button" icon="el-icon-download" circle @click.stop="download(tmpEn)" />
                     </div>
                 </div>
             </div>

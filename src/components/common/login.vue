@@ -67,7 +67,7 @@
             submitForm(formName) {
                 this.$http.post('/users/login', {
                     userAccount: this.dynamicValidateForm.username,
-                    password: this.dynamicValidateForm.password
+                    password: this.$func.md5(this.dynamicValidateForm.password)
                 }).then(({success, data, errMsg: text}) => {
                     if (!success) {
                         swal({
@@ -92,18 +92,18 @@
             }
         },
         created() {
-            if (this.storeServerChatEn.login) {
-                swal({
-                    title: '提示!',
-                    text: '您已经登录',
-                    type: 'info',
-                    confirmButtonClass: 'el-button el-button--primary',
-                    confirmButtonText: 'OK',
-                    buttonsStyling: false
-                }).then(() => {
-                    this.$router.forward();
-                })
-            }
+            // if (this.storeServerChatEn.login) {
+            //     swal({
+            //         title: '提示!',
+            //         text: '您已经登录',
+            //         type: 'info',
+            //         confirmButtonClass: 'el-button el-button--primary',
+            //         confirmButtonText: 'OK',
+            //         buttonsStyling: false
+            //     }).then(() => {
+            //         this.$router.forward();
+            //     })
+            // }
         }
     }
 </script>

@@ -73,12 +73,12 @@
                 <div>
                     <!-- 表情、文件选择等操作 -->
                     <div class="opr-wrapper">
-                        <common-chat-emoji class="item" ref="qqemoji" @select="qqemoji_selectFace"></common-chat-emoji>
-                        <a class="item" href="javascript:void(0)" @click="fileUpload_click('file')">
-                            <i class="iconfont fa fa-file-o"></i>
-                        </a>
+                        <!--<common-chat-emoji class="item" ref="qqemoji" @select="qqemoji_selectFace"></common-chat-emoji>-->
+                        <div class="item" href="javascript:void(0)" @click="triggerUploadPicture()">
+                            <i class="el-icon-picture-outline"></i>
+                        </div>
                         <form method="post" enctype="multipart/form-data">
-                            <input type="file" name="uploadFile" id="common_chat_opr_fileUpload" style="display:none;position:absolute;left:0;top:0;width:0%;height:0%;opacity:0;">
+                            <input type="file" accept="image/gif,image/jpeg,image/png" name="uploadFile" id="common_chat_opr_fileUpload" style="display:none;position:absolute;left:0;top:0;width:0%;height:0%;opacity:0;">
                         </form>
                     </div>
                     <!-- 聊天输入框 -->
@@ -89,10 +89,7 @@
                             id="common_chat_input"
                             contenteditable="true"
                             @paste.stop="inputContent_paste"
-                            @drop="inputContent_drop"
                             @keydown="inputContent_keydown"
-                            @mouseup="inputContent_mouseup"
-                            @mouseleave="inputContent_mouseup"
                         ></div>
                     </div>
                     <!-- 发送按钮 -->
@@ -162,7 +159,7 @@ export default {
             var self = this;
             // 初始化状态
             document.getElementById('common_chat_input').innerHTML = '';
-            self.$refs.qqemoji.$data.faceHidden = true;
+            // self.$refs.qqemoji.$data.faceHidden = true;
 
             // 在线状态
             if (this.chatInfoEn.state == 'on') {
@@ -289,7 +286,7 @@ export default {
             if (tmpInputContent.length > 500) {
                 document.getElementById('common_chat_input').innerHTML = '';
                 var value = tmpInputContent.substr(0, 499).replace(/\[(.+?)\]/g, function(item, value) {
-                    return self.$refs.qqemoji.getImgByFaceName(value);
+                    // return self.$refs.qqemoji.getImgByFaceName(value);
                 });
                 this.setInputDiv(value);
             }
@@ -369,7 +366,7 @@ export default {
             }
             var self = this;
             return value.replace(/\[(.+?)\]/g, function(item, value) {
-                return self.$refs.qqemoji.getImgByFaceName(value);
+                // return self.$refs.qqemoji.getImgByFaceName(value);
             });
         },
 
@@ -421,32 +418,20 @@ export default {
          * 输入框的粘贴
          */
         inputContent_paste: function(e) {
-            var self = this;
-            var isImage = false;
+            let isImage = false;
+            const clear = () => document.getElementById('common_chat_opr_fileUpload').value = '';
             if (e.clipboardData && e.clipboardData.items.length > 0) {
                 // 1.上传图片
-                for (var i = 0; i < e.clipboardData.items.length; i++) {
-                    var item = e.clipboardData.items[i];
-                    if (item.kind == 'file' && item.type.indexOf('image') >= 0) {
+                for (let i = 0; i < e.clipboardData.items.length; i++) {
+                    let item = e.clipboardData.items[i];
+                    if (item.kind === 'file' && item.type.indexOf('image') >= 0) {
+                        e.preventDefault();
                         // 粘贴板为图片类型
-                        var file = item.getAsFile();
-                        let formData = new FormData();
-                        formData.append('uploadFile', file);
-                        this.$http.uploadFile({
-                            url: '/upload',
-                            params: formData,
-                            successCallback: (rs) => {
-                                console.log(file);
-                                console.log(rs);
-                                document.getElementById('common_chat_opr_fileUpload').value = '';
-                                this.sendMsg({
-                                    contentType: 'image',
-                                    fileName: rs.fileName,
-                                    fileUrl: rs.fileUrl,
-                                    state: 'success'
-                                });
-                            }
-                        });
+                        const file = item.getAsFile();
+                        // this.uploadCommon(file)
+                        this.compressPicture({file}).then(file => {
+                            this.uploadCommon(file, clear)
+                        })
                         isImage = true;
                     }
                 }
@@ -474,15 +459,15 @@ export default {
         /**
          * 文件上传_点击
          */
-        fileUpload_click: function(fileType) {
-            document.getElementById('common_chat_opr_fileUpload').onchange = this.fileUpload_change;
+        triggerUploadPicture: function(fileType) {
+            document.getElementById('common_chat_opr_fileUpload').onchange = this.uploadPicture;
             document.getElementById('common_chat_opr_fileUpload').click();
         },
 
         /**
          * 文件上传_选中文件
          */
-        fileUpload_change: function(e) {
+        uploadPicture: function(e) {
             var fileNameIndex = document.getElementById('common_chat_opr_fileUpload').value.lastIndexOf('\\') + 1;
             var fileName = document.getElementById('common_chat_opr_fileUpload').value.substr(fileNameIndex);
             var extend = fileName.substring(fileName.lastIndexOf('.') + 1);
@@ -494,23 +479,96 @@ export default {
                 return false;
             }
 
+            const clear = () => {document.getElementById('common_chat_opr_fileUpload').value = '';}
             // 2.文件上传
+            this.uploadCommon(document.getElementById('common_chat_opr_fileUpload').files[0], clear)
+            //     url: 'serverApi/upload',
+            //     method: 'POST',
+            //     params: formData,
+            //     config,
+            //     successCallback: (rs) => {
+            //         console.log(rs);
+            //         document.getElementById('common_chat_opr_fileUpload').value = '';
+            //         this.sendMsg({
+            //             contentType: ['png', 'jpg', 'jpeg', 'gif', 'bmp'].indexOf(extend) >= 0 ? 'image' : 'file',
+            //             fileName: fileName,
+            //             fileUrl: rs.fileUrl,
+            //             state: 'success'
+            //         });
+            //     }
+            // });
+        },
+
+        compressPicture: function ({file, format = 'image/jpeg', quality = 0.9}) {
+            const dataURLtoBlob = (dataurl) => {
+                let arr = dataurl.split(','),
+                    mime = arr[0].match(/:(.*?);/)[1],
+                    bstr = atob(arr[1]),
+                    len = bstr.length,
+                    u8arr = new Uint8Array(len);
+                while (len--) u8arr[len] = bstr.charCodeAt(len);
+                return new Blob([u8arr], {type: mime});
+            }
+            return new Promise(resolve => {
+                const fr = new FileReader();
+                fr.onload = (e) => {
+                    const dataURL = e.target.result;
+                    let img = new Image();
+                    img.onload = function()
+                    {
+                        let canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        ctx.drawImage(img, 0, 0);
+                        const newDataURL = canvas.toDataURL(format, quality);
+                        resolve(dataURLtoBlob(newDataURL));
+                        canvas = null;
+                        // img.parentNode.removeChild(img)
+                        img.remove()
+                        img = null
+                    };
+                    img.src = dataURL;
+                };
+                fr.readAsDataURL(file); // blob 转 dataURL
+            })
+        },
+
+        uploadCommon: function (file, callback) {
             let formData = new FormData();
-            formData.append('uploadFile', document.getElementById('common_chat_opr_fileUpload').files[0]);
-            this.$http.uploadFile({
-                url: '/upload',
-                params: formData,
-                successCallback: (rs) => {
-                    console.log(rs);
-                    document.getElementById('common_chat_opr_fileUpload').value = '';
+            formData.append('uploadFile', file);
+            let config = {
+                //添加请求头
+                headers: { "Content-Type": "multipart/form-data" }
+            }
+            this.$http.post('serverApi/upload', formData, config).then(({success, errMsg, data}) => {
+                callback && callback()
+                if (!success) {
+                    swal({
+                        title: '上传失败!',
+                        text: errMsg,
+                        type: 'error',
+                        confirmButtonClass: 'el-button el-button--danger',
+                        confirmButtonText: 'OK',
+                        buttonsStyling: false
+                    })
+                } else {
                     this.sendMsg({
-                        contentType: ['png', 'jpg', 'jpeg', 'gif', 'bmp'].indexOf(extend) >= 0 ? 'image' : 'file',
-                        fileName: fileName,
-                        fileUrl: rs.fileUrl,
-                        state: 'success'
-                    });
+                        contentType: 'image',
+                        content: data
+                    })
                 }
-            });
+            }).catch(error => {
+                callback && callback()
+                swal({
+                    title: '会话关闭失败!',
+                    text: error.errMsg || '未知错误',
+                    type: 'error',
+                    confirmButtonClass: 'el-button el-button--danger',
+                    confirmButtonText: 'OK',
+                    buttonsStyling: false
+                })
+            })
         },
 
         /**
@@ -604,7 +662,6 @@ export default {
          * 聊天记录滚动到底部
          */
         goEnd: function() {
-            console.log(this.$refs.historyDivs)
             this.$nextTick(() => {
                 setTimeout(() => {
                     this.$refs.common_chat_main.scrollTop = this.$refs.common_chat_main.scrollHeight;
