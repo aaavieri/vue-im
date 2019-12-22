@@ -8,19 +8,14 @@
                         <template slot="title"><i class="el-icon-menu"></i></template>
                         <el-menu-item index="2-1"><el-button size="medium" icon="el-icon-search" style="border: 0" @click="doSearch">搜索</el-button></el-menu-item>
                         <el-menu-item index="2-2">
-                            <el-popover
-                                placement="top"
-                                width="160"
-                                v-model="visible">
-                                <p>这是一段内容这是一段内容确定删除吗？</p>
-                                <div style="text-align: right; margin: 0">
-                                    <el-button size="mini" type="text" @click="visible = false">取消</el-button>
-                                    <el-button type="primary" size="mini" @click="visible = false">确定</el-button>
-                                </div>
-                                <el-button size="medium" slot="reference" icon="el-icon-search" style="border: 0" @click="doSearch">搜索</el-button>
-                            </el-popover>
+                            <el-button size="medium" icon="el-icon-sunny" style="border: 0" @click="toOnLine">在线</el-button>
+                            <i v-if="serverUserOnLine" class="el-icon-check"></i>
                         </el-menu-item>
-                        <el-menu-item index="2-3"><el-button size="medium" icon="el-icon-close" style="border: 0" @click="logout">退出</el-button></el-menu-item>
+                        <el-menu-item index="2-3">
+                            <el-button size="medium" icon="el-icon-moon" style="border: 0" @click="toOffLine">离开</el-button>
+                            <i v-if="!serverUserOnLine" class="el-icon-check"></i>
+                        </el-menu-item>
+                        <el-menu-item index="2-4"><el-button size="medium" icon="el-icon-close" style="border: 0" @click="logout">退出</el-button></el-menu-item>
                     </el-submenu>
                 </el-menu>
             </im-record>
@@ -85,6 +80,9 @@ export default {
         },
         serverUserToken() {
             return this.$store.imServerStore.getters.serverChatEn.serverChatToken;
+        },
+        serverUserOnLine() {
+            return this.$store.imServerStore.getters.serverChatEn.onLine;
         }
     },
     watch: {
@@ -204,6 +202,58 @@ export default {
                 })
             }
         },
+        toOnLine: function () {
+            if (this.serverUserOnLine) {
+                return
+            }
+            this.$store.imServerStore.commit('onLine', {})
+        },
+        toOffLine: function () {
+            if (!this.serverUserOnLine) {
+                return
+            }
+            swal({
+                title: '设置离开时的自动回复',
+                input: 'text',
+                inputValue: this.storeServerChatEn.leaveQuickReply.replyContent,
+                inputAttributes: {
+                    autocapitalize: 'off'
+                },
+                inputValidator: (value) => {
+                    if (!value || !value.trim()) {
+                        return '不能为空'
+                    }
+                },
+                showCancelButton: true,
+                confirmButtonText: 'OK',
+            }).then((result) => {
+                if (result.value) {
+                    if (result.value !== this.storeServerChatEn.leaveQuickReply.replyContent) {
+                        this.$http.post('serverApi/saveQuickReply', {
+                            type: 1,
+                            quickReplyId: this.storeServerChatEn.leaveQuickReply.quickReplyId,
+                            replyContent: result.value
+                        }).then(({success, errMsg, data}) => {
+                            if (!success) {
+                                swal({
+                                    title: '保存失败!',
+                                    text: errMsg || '未知错误',
+                                    type: 'error',
+                                    confirmButtonClass: 'el-button el-button--danger',
+                                    confirmButtonText: 'OK',
+                                    buttonsStyling: false
+                                })
+                            } else {
+                                this.$store.imServerStore.commit('offLine', {})
+                                this.$store.imServerStore.commit('modifyLeaveReply', {quickReplyId: data, replyContent: result.value})
+                            }
+                        })
+                    } else {
+                        this.$store.imServerStore.commit('offLine', {})
+                    }
+                }
+            })
+        }
     },
     created() {
     },
@@ -219,9 +269,10 @@ export default {
                     buttonsStyling: false
                 })
             } else {
-                const {sessionList, server} = data
+                const {sessionList, server, leaveQuickReply, commonQuickReplyList} = data
                 this.$store.imServerStore.commit('saveUserInfo', server)
                 this.$store.imServerStore.commit('addSessions', {sessionList})
+                this.$store.imServerStore.commit('saveReplyInfo', {leaveQuickReply, commonQuickReplyList})
                 this.$store.imServerStore.dispatch('SERVER_ON');
             }
         })

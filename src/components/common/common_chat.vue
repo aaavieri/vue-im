@@ -80,6 +80,24 @@
                         <form method="post" enctype="multipart/form-data">
                             <input type="file" accept="image/gif,image/jpeg,image/png" name="uploadFile" id="common_chat_opr_fileUpload" style="display:none;position:absolute;left:0;top:0;width:0%;height:0%;opacity:0;">
                         </form>
+                        <el-dropdown size="mini" class="quick-send-drop" placement="top-end" @command="handleDropDownCommand">
+                              <!--<span class="el-dropdown-link">-->
+                                <!--下拉菜单-->
+                              <!--</span>-->
+                            <el-button type="text" class="drop-button">常用快捷回复<i class="el-icon-arrow-up el-icon--right"></i></el-button>
+                            <el-dropdown-menu slot="dropdown">
+                                <!--<el-dropdown-item class="drop-item"><span>狮子头</span><el-button type="primary" icon="el-icon-edit" size="mini" round/></el-dropdown-item>-->
+                                <el-dropdown-item v-if="commonQuickReplyList.length === 0" class="drop-item">未设定快捷回复</el-dropdown-item>
+                                <el-dropdown-item v-else class="drop-item"
+                                                  v-for="quickReply in commonQuickReplyList"
+                                                  :key="quickReply.quickReplyId"
+                                                  @click.native="sendQuickReply(quickReply.replyContent)">
+                                    <span>{{quickReply.replyContent}}</span>
+                                    <el-button @click.stop="saveQuickReply(quickReply)" type="primary" icon="el-icon-edit" size="mini" round/>
+                                </el-dropdown-item>
+                                <el-dropdown-item divided @click.native="saveQuickReply">添加新快捷回复</el-dropdown-item>
+                            </el-dropdown-menu>
+                        </el-dropdown>
                     </div>
                     <!-- 聊天输入框 -->
                     <div class="input-wrapper">
@@ -148,7 +166,14 @@ export default {
             imgViewDialog_imgSrc: '' // 图片查看dialog的图片地址
         };
     },
-    computed: {},
+    computed: {
+        commonQuickReplyList() {
+            return this.$store.imServerStore.getters.serverChatEn.commonQuickReplyList
+        },
+        storeServerChatEn() {
+            return this.$store.imServerStore.getters.serverChatEn;
+        }
+    },
     watch: {},
     methods: {
         /**
@@ -678,6 +703,66 @@ export default {
                     }, 350);
                 });
             }
+        },
+
+        handleDropDownCommand: function(command) {
+
+        },
+
+        saveQuickReply: function ({quickReplyId = 0, replyContent = ''}) {
+            swal({
+                title: '设置自动回复',
+                input: 'text',
+                inputValue: replyContent,
+                inputAttributes: {
+                    autocapitalize: 'off'
+                },
+                inputValidator: (value) => {
+                    if (!value || !value.trim()) {
+                        return '不能为空'
+                    }
+                    if (value === replyContent) {
+                        return '未作出修改'
+                    }
+                },
+                showCancelButton: true,
+                confirmButtonText: 'OK',
+            }).then((result) => {
+                if (result.value) {
+                    this.$http.post('serverApi/saveQuickReply', {
+                        type: 2,
+                        quickReplyId: quickReplyId,
+                        replyContent: result.value
+                    }).then(({success, errMsg, data}) => {
+                        if (!success) {
+                            swal({
+                                title: '保存失败!',
+                                text: errMsg || '未知错误',
+                                type: 'error',
+                                confirmButtonClass: 'el-button el-button--danger',
+                                confirmButtonText: 'OK',
+                                buttonsStyling: false
+                            })
+                        } else {
+                            this.$store.imServerStore.commit('modifyCommonReply', {
+                                quickReply: {
+                                    quickReplyId: data,
+                                    serverUserId: this.storeServerChatEn.serverChatId,
+                                    type: 2,
+                                    replyContent: result.value
+                                }
+                            })
+                        }
+                    })
+                }
+            })
+        },
+
+        sendQuickReply: function (replyContent) {
+            this.sendMsg({
+                contentType: 'text',
+                content: replyContent
+            });
         }
     },
     mounted() {
@@ -979,6 +1064,7 @@ export default {
             position: relative;
             width: 100%;
             border-top: 1px solid #ccc;
+            display: block;
             .opr-wrapper {
                 height: 20px;
                 padding: 10px;
@@ -991,6 +1077,16 @@ export default {
                     & > .iconfont {
                         color: #aaa;
                         font-size: 20px;
+                    }
+                }
+                .quick-send-drop {
+                    float: right;
+                    .drop-button {
+                        color: #606266;
+                    }
+                    .drop-item {
+                        display: flex;
+                        justify-content: space-between
                     }
                 }
             }

@@ -16,7 +16,10 @@ export const imServerStore = new Vuex.Store({
             channelId: 0,
             avatar: 'static/image/im_server_avatar.png',
             serverChatToken: window.localStorage.getItem('serverChatToken'),
-            login: false
+            onLine: true,
+            login: false,
+            leaveQuickReply: {replyContent: '客服暂时离开，请稍后。'},
+            commonQuickReplyList: []
         },
         selectedChatEn: null, // 选取的会话对象
         currentChatEnlist: [], // 当前chat实体集合
@@ -33,6 +36,34 @@ export const imServerStore = new Vuex.Store({
             state.serverChatEn.serverChatName = serverUserName
             state.serverChatEn.channelId = channelId
             state.serverChatEn.login = true
+        },
+
+        onLine: function (state) {
+            state.serverChatEn.onLine = true
+        },
+
+        offLine: function (state) {
+            state.serverChatEn.onLine = false
+        },
+
+        saveReplyInfo: function (state, {leaveQuickReply, commonQuickReplyList}) {
+            state.serverChatEn.leaveQuickReply = leaveQuickReply
+            state.serverChatEn.commonQuickReplyList = commonQuickReplyList
+        },
+
+        modifyLeaveReply: function (state, {quickReplyId, replyContent}) {
+            state.serverChatEn.leaveQuickReply.quickReplyId = quickReplyId
+            state.serverChatEn.leaveQuickReply.replyContent = replyContent
+        },
+
+        modifyCommonReply: function (state, {quickReply}) {
+            const {quickReplyId, replyContent} = quickReply
+            const originalReply = state.serverChatEn.commonQuickReplyList.find(reply => reply.quickReplyId === quickReplyId)
+            if (originalReply) {
+                originalReply.replyContent = replyContent
+            } else {
+                state.serverChatEn.commonQuickReplyList.push(quickReply)
+            }
         },
 
         saveUserInfo: function (state, payload) {
@@ -546,11 +577,30 @@ export const imServerStore = new Vuex.Store({
                         })
                         return
                     }
-                    const {clientChatName: userName = ''} = context.state.currentChatEnlist.find(({clientChatId}) => clientChatId === clientChatEn.clientChatId)
+                    const findClientChat = context.state.currentChatEnlist.find(({clientChatId}) => clientChatId === clientChatEn.clientChatId)
+                    // const {clientChatName: userName = ''} = context.state.currentChatEnlist.find(({clientChatId}) => clientChatId === clientChatEn.clientChatId)
+                    let userName = 'system'
+                    if (msg.role === 'server') {
+                        userName = context.state.serverChatEn.serverChatName
+                    } else if (msg.role === 'client') {
+                        userName = findClientChat.clientChatName
+                    }
                     context.dispatch('addChatMsg', {
                         clientChatId: clientChatEn.clientChatId,
                         msg: {...msg, userName}
                     });
+                    // console.log(msg)
+                    if (!context.state.serverChatEn.onLine && msg.role === 'client') {
+                        context.dispatch('sendMsg', {
+                            clientChatId: findClientChat.clientChatId,
+                            serverChatId: context.state.serverChatEn.serverChatId,
+                            sessionId: findClientChat.sessionId,
+                            msg: {
+                                contentType: 'text',
+                                content: context.state.serverChatEn.leaveQuickReply.replyContent
+                            }
+                        })
+                    }
                 });
 
                 context.state.socket.on('SYSTEM_SEND_ERROR_MSG', function ({errMsg = '未知错误'}) {
